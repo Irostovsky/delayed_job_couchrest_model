@@ -23,7 +23,7 @@ module Delayed
                             emit([doc['failed_at'], doc['locked_by'], doc['run_at']], null);
                           }
                        }"
-              
+
           view :by_failed_at_and_locked_at_and_run_at,
               :map => "function(doc){
                           if(doc['type'] == 'Delayed::Backend::CouchrestModel::Job') {
@@ -31,30 +31,30 @@ module Delayed
                           }
                         }"
         end
-        
+
         def self.db_time_now; Time.now.utc; end
-        
+
         def self.find_available(worker_name, limit = 5, max_run_time = ::Delayed::Worker.max_run_time)
           ready = ready_jobs
           mine = my_jobs worker_name
           expire = expired_jobs max_run_time
-          
+
           jobs = (ready + mine + expire)[0..limit-1].sort_by { |j| j.priority }
           jobs = jobs.find_all { |j| j.priority >= Worker.min_priority } if Worker.min_priority
           jobs = jobs.find_all { |j| j.priority <= Worker.max_priority } if Worker.max_priority
           jobs
         end
-        
+
         def self.clear_locks!(worker_name)
           jobs = my_jobs worker_name
           jobs.each { |j| j.locked_by, j.locked_at = nil, nil; }
           database.bulk_save jobs
         end
-        
+
         def self.delete_all
           database.bulk_save all.each { |doc| doc['_deleted'] = true }
         end
-        
+
         def lock_exclusively!(max_run_time, worker = worker_name)
           return false if locked_by_other?(worker) and not expired?(max_run_time)
           case
@@ -67,9 +67,9 @@ module Delayed
         rescue RestClient::Conflict
           false
         end
-        
+
         private
-        
+
           def self.ready_jobs
             by_failed_at_and_locked_by_and_run_at.startkey([nil, nil]).endkey([nil, nil, db_time_now]).all
           end
